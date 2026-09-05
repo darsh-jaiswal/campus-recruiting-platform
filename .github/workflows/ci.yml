@@ -1,0 +1,81 @@
+name: CI
+
+# Every push to `main` auto-deploys to production (Vercel is Git-connected),
+# so `main` is the last place to find out something is broken. This runs the
+# chain CLAUDE.md documents — typecheck, lint, unit tests, build — on pull
+# requests, and on `main` as a backstop for direct pushes.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The required gate. Deliberately needs NO secrets: `next build` was verified
+  # to succeed with an empty environment (the proxy is written so public pages
+  # survive a missing auth provider), which keeps this job runnable on forks
+  # and impossible to break by a secret expiring.
+  checks:
+    name: Typecheck · Lint · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `ci` not `install` — installs exactly the committed lockfile and fails
+      # if package.json and package-lock.json have drifted apart.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Warnings are allowed through; a new error is not.
+      - name: Lint
+        run: npm run lint -- --max-warnings=-1
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  # Supply chain. Separated so a newly-published advisory in a transitive dev
+  # dependency cannot block an unrelated PR, while a real high/critical still
+  # shows up as a failure.
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fails on high and critical only. As of 2026-09-03 the tree carries 5
+      # moderate advisories, all dev-only or unreachable — see
+      # SECURITY-AUDIT-2026-09-03.md. Tighten this to `--audit-level=moderate`
+      # once those are cleared.
+      - name: npm audit (high and critical)
+        run: npm audit --audit-level=high
