@@ -35,7 +35,6 @@ Full-stack, end to end: a public marketing site, a gated student registration an
 - [`src/lib/scoring.ts`](./src/lib/scoring.ts), the Anthropic API integration that ranks applicants against an opening.
 - [`payment-flow-review.md`](./payment-flow-review.md), a real design review that documents six actual defects an earlier draft of the payment flow had, and why each one was wrong, before any of it shipped.
 - [`src/lib/access-policy.ts`](./src/lib/access-policy.ts) and its test file, the actual authorization rule for who can view a student's resume.
-- [`SECURITY-AUDIT-2026-09-03.md`](./SECURITY-AUDIT-2026-09-03.md), a full security audit of the codebase.
 - [`docs/superpowers/specs/`](./docs/superpowers/specs) and [`docs/superpowers/plans/`](./docs/superpowers/plans), the actual written spec and implementation plan that drove this feature, before any code was written.
 
 ## Built with Claude Code
